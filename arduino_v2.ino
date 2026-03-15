@@ -4,32 +4,20 @@ int dataPin  = 7;
 int latchPin = 8;       
 
 const int DISPLAY_NUM[] = { 
-  202,   // Number 0 in binary: 11000000
-  249,   // Number 1 in binary: 11111001
-  164,   // Number 2 in binary: 10100100
-  176,   // Number 3 in binary: 10110000
+  0b1000000,   // Number 0 in binary: 11000000
+  0b1111001,   // Number 1 in binary: 11111001
+  0b0100100,   // Number 2 in binary: 10100100
+  0b0110000   // Number 3 in binary: 10110000
 };
-
 
 
 const int limitFloor1Pin = 2;    
 const int limitFloor2Pin = 3;    
 const int limitFloor3Pin = 4;   
-   
 
-int limitDoorOpenPin = 5;
-int limitDoorClosedPin = 6;
-
-int btnOpenDoorPin = A0;
-int btnCloseDoorPin = A1;
 const int btnCall1Pin = A2;   
 const int btnCall2Pin = A3;   
 const int btnCall3Pin = A4;    
-    
-
- 
-int motorDoorOpenPin = 10;
-int motorDoorClosePin = 11;
 
 const int motorUpPin = 12;        
 const int motorDownPin = 13;      
@@ -39,29 +27,16 @@ enum ElevatorState {
   IDLE,         //door close
   MOVING_UP,
   MOVING_DOWN,  
-  BOARDING      //door open
 };
 ElevatorState currentState = IDLE;
 
 int currentFloor = 1; // default starting assumption
 int targetFloor = 0;  // 0 means no active target
-
-//variables handle door open timings
-unsigned long doorOpenedTime = 0;
-const unsigned long doorOpenDuration = 5000; // Stay open for 5 seconds
+int lastDisplayedFloor = -1; //help avoid unneccessary display output 
 
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(btnOpenDoorPin, INPUT);
-  pinMode(btnCloseDoorPin, INPUT);
-  pinMode(motorDoorOpenPin, OUTPUT);
-  pinMode(motorDoorClosePin, OUTPUT);
-  
-  pinMode(limitDoorOpenPin, INPUT);
-  pinMode(limitDoorClosedPin, INPUT);
-
 
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
@@ -71,7 +46,6 @@ void setup() {
   pinMode(limitFloor2Pin, INPUT);
   pinMode(limitFloor3Pin, INPUT);
 
-  
   pinMode(btnCall1Pin, INPUT);
   pinMode(btnCall2Pin, INPUT);
   pinMode(btnCall3Pin, INPUT);
@@ -104,10 +78,7 @@ void setup() {
 }
 
 void loop() {
-  //get the current millis timing
-  unsigned long currentMillis = millis();
   
-
   // update currentFloor and display
   if (digitalRead(limitFloor1Pin)){
     if (currentFloor != 1) {Serial.println("limit floor 1 triggered");}
@@ -144,23 +115,11 @@ void loop() {
   // MAIN LOGIC
   switch (currentState) {
     case IDLE:
-      // manual Door Open
-      if (digitalRead(btnOpenDoorPin) == HIGH) {
-        digitalWrite(motorDoorOpenPin, HIGH);
-        digitalWrite(motorDoorClosePin, LOW);
-        doorOpenedTime = currentMillis; // start the stopwatch
-        currentState = BOARDING;
-        Serial.println("Mannually opening door now");
-      }
       // process target floor
-      else if (targetFloor != 0) {
+      if (targetFloor != 0) {
         if (targetFloor == currentFloor) {
           // already on same floor, open the doors.
-          Serial.println("Already on same floor, opening door now");
-          digitalWrite(motorDoorOpenPin, HIGH);
-          digitalWrite(motorDoorClosePin, LOW);
-          doorOpenedTime = currentMillis;
-          currentState = BOARDING;
+          Serial.println("Already on same floor, nothing to do");
           targetFloor = 0; 
         } else if (targetFloor > currentFloor) {
           Serial.println("Lift moving UP");
@@ -172,40 +131,12 @@ void loop() {
       }
       break;
 
-    case BOARDING:
-      // stop opening motor if fully open
-      if (digitalRead(limitDoorOpenPin) == HIGH) {
-        digitalWrite(motorDoorOpenPin, LOW);
-        Serial.println("Door fully open");
-      }
-
-      // automatically close doors after 5 seconds OR if close button is pressed
-      if ((currentMillis - doorOpenedTime >= doorOpenDuration) || (digitalRead(btnCloseDoorPin) == HIGH)) {
-        digitalWrite(motorDoorOpenPin, LOW); // ensure open motor is off
-        digitalWrite(motorDoorClosePin, HIGH); // start closing
-        Serial.println("Closing the door");
-      }
-
-      // stop closing motor and return to IDLE when fully closed
-      if (digitalRead(limitDoorClosedPin) == HIGH) {
-        digitalWrite(motorDoorClosePin, LOW);
-        currentState = IDLE; 
-        Serial.println("Door fully close");
-      }
-      break;
-
     case MOVING_UP:
       // if reached target floor
       if (currentFloor == targetFloor) {
         Serial.println("Reached target floor");
         targetFloor = 0;
-        
-        // open door after reaching the floor
-        digitalWrite(motorDoorOpenPin, HIGH);
-        digitalWrite(motorDoorClosePin, LOW);
-        doorOpenedTime = currentMillis;
-        currentState = BOARDING; 
-        Serial.println("Automatic door opening now");
+        currentState = IDLE; 
       }
       break;
 
@@ -214,12 +145,7 @@ void loop() {
       if (currentFloor == targetFloor) {
         Serial.println("Reached target floor");
         targetFloor = 0;
-        
-        // start opening doors immediately
-        digitalWrite(motorDoorOpenPin, HIGH);
-        digitalWrite(motorDoorClosePin, LOW);
-        doorOpenedTime = currentMillis;
-        currentState = BOARDING; 
+        currentState = IDLE; 
       }
       break;
     
@@ -246,9 +172,17 @@ void loop() {
 
 // helper Function for the 7-Segment Display
 void updateDisplay() {
-  digitalWrite(latchPin, LOW);
-  if (currentFloor >= 0 && currentFloor <= 3) {
-      shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[currentFloor]); 
+  if (lastDisplayedFloor != currentFloor){
+    digitalWrite(latchPin, LOW);
+    if (currentFloor >= 0 && currentFloor <= 3) {
+        shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[currentFloor]); 
+    }
+    digitalWrite(latchPin, HIGH);
+
+    
+    Serial.print("Display updating to show Floor: ");
+    Serial.println(currentFloor);
+    //update the lastDisplayedFloor
+    lastDisplayedFloor = currentFloor;
   }
-  digitalWrite(latchPin, HIGH);
 }
