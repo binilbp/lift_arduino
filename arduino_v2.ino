@@ -60,136 +60,136 @@ void setup() {
   Serial.println("Setup Runing");
 
   //homing sequence: find a floor if floating
-  // //output 0 to display
-  // digitalWrite(latchPin, LOW);
-  // shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[0]); 
-  // digitalWrite(latchPin, HIGH);
+  //output 0 to display
+  digitalWrite(latchPin, LOW);
+  shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[0]); 
+  digitalWrite(latchPin, HIGH);
   
-  // while (digitalRead(limitFloor1Pin) == LOW && digitalRead(limitFloor2Pin) == LOW && digitalRead(limitFloor3Pin) == LOW) {
-  //   Serial.println("Moving to nearby lower station");
-  //   digitalWrite(motorDownPin, HIGH);
-  //   currentState = MOVING_DOWN; //set state as moving down
-  // }
+  while (digitalRead(limitFloor1Pin) == LOW && digitalRead(limitFloor2Pin) == LOW && digitalRead(limitFloor3Pin) == LOW) {
+    Serial.println("Moving to nearby lower station");
+    digitalWrite(motorDownPin, HIGH);
+    currentState = MOVING_DOWN; //set state as moving down
+  }
   
-  // Serial.println("Lift reached a station");
-  // // ensure outputs are low after homing
-  // digitalWrite(motorUpPin, LOW);
-  // digitalWrite(motorDownPin, LOW);
-  // currentState = IDLE;  //set state as idle
+  Serial.println("Lift reached a station");
+  // ensure outputs are low after homing
+  digitalWrite(motorUpPin, LOW);
+  digitalWrite(motorDownPin, LOW);
+  currentState = IDLE;  //set state as idle
 
 }
 
 
 void loop() {
-  // Count from 0 to 3
-  for (int i = 0; i <= 3; i++) {
+//   // Count from 0 to 3
+//   for (int i = 0; i <= 3; i++) {
     
-    Serial.print("Testing Display Floor: ");
-    Serial.println(i);
+//     Serial.print("Testing Display Floor: ");
+//     Serial.println(i);
 
-    // 1. Pull latch LOW so the LEDs don't change while you are sending data
-    digitalWrite(latchPin, LOW);
+//     // 1. Pull latch LOW so the LEDs don't change while you are sending data
+//     digitalWrite(latchPin, LOW);
     
-    // 2. Send the binary data from your array to the 74LS595
-    shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[i]);
+//     // 2. Send the binary data from your array to the 74LS595
+//     shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[i]);
     
-    // 3. Pull latch HIGH to lock the data and turn on the display
-    digitalWrite(latchPin, HIGH);
+//     // 3. Pull latch HIGH to lock the data and turn on the display
+//     digitalWrite(latchPin, HIGH);
     
-    // 4. Wait for 2 seconds (2000 milliseconds) before showing the next number
-    delay(2000); 
-  }
-}
-//   //update currentFloor and display
-//   if (digitalRead(limitFloor1Pin)){
-//     if (currentFloor != 1) {Serial.println("limit floor 1 triggered");}
-//     currentFloor = 1;
-//   }
-//   else if (digitalRead(limitFloor2Pin)){
-//     if (currentFloor != 2) {Serial.println("limit floor 2 triggered");}
-//     currentFloor = 2;
-//   } 
-//   else if (digitalRead(limitFloor3Pin)){
-//     if (currentFloor != 3) {Serial.println("limit floor 3 triggered");}
-//     currentFloor = 3;
-//   } 
-//   updateDisplay();
-
-
-//   // recieve floor requests only when IDLE
-//   if (currentState == IDLE) {
-//     if (digitalRead(btnCall1Pin)){
-//       targetFloor = 1;
-//       Serial.println("Floor 1 button pressed");
-//     }
-//     else if (digitalRead(btnCall2Pin)){
-//       targetFloor = 2;
-//       Serial.println("Floor 2 button pressed");
-//     }
-//     else if (digitalRead(btnCall3Pin)){
-//       targetFloor = 3;
-//       Serial.println("Floor 3 button pressed");
-//     }
-//   }
-
-
-//   // MAIN LOGIC
-//   switch (currentState) {
-//     case IDLE:
-//       // process target floor
-//       if (targetFloor != 0) {
-//         if (targetFloor == currentFloor) {
-//           // already on same floor, open the doors.
-//           Serial.println("Already on same floor, nothing to do");
-//           targetFloor = 0; 
-//         } else if (targetFloor > currentFloor) {
-//           Serial.println("Lift moving UP");
-//           currentState = MOVING_UP;
-//         } else {
-//           Serial.println("Lift moving DOWN");
-//           currentState = MOVING_DOWN;
-//         }
-//       }
-//       break;
-
-//     case MOVING_UP:
-//       // if reached target floor
-//       if (currentFloor == targetFloor) {
-//         Serial.println("Reached target floor");
-//         targetFloor = 0;
-//         currentState = IDLE; 
-//       }
-//       break;
-
-//     case MOVING_DOWN:
-//       // if reached target floor
-//       if (currentFloor == targetFloor) {
-//         Serial.println("Reached target floor");
-//         targetFloor = 0;
-//         currentState = IDLE; 
-//       }
-//       break;
-    
-//     default:
-//       // for safety
-//       currentState = IDLE;
-//       break;
-//   }
-
-//   // motor logic 
-//   if (currentState == MOVING_UP) {
-//     digitalWrite(motorUpPin, HIGH);
-//     digitalWrite(motorDownPin, LOW);
-//   } 
-//   else if (currentState == MOVING_DOWN) {
-//     digitalWrite(motorUpPin, LOW);
-//     digitalWrite(motorDownPin, HIGH);  
-//   } 
-//   else { // IDLE
-//     digitalWrite(motorUpPin, LOW);
-//     digitalWrite(motorDownPin, LOW);   
+//     // 4. Wait for 2 seconds (2000 milliseconds) before showing the next number
+//     delay(2000); 
 //   }
 // }
+  //update currentFloor and display
+  if (digitalRead(limitFloor1Pin)){
+    if (currentFloor != 1) {Serial.println("limit floor 1 triggered");}
+    currentFloor = 1;
+  }
+  else if (digitalRead(limitFloor2Pin)){
+    if (currentFloor != 2) {Serial.println("limit floor 2 triggered");}
+    currentFloor = 2;
+  } 
+  else if (digitalRead(limitFloor3Pin)){
+    if (currentFloor != 3) {Serial.println("limit floor 3 triggered");}
+    currentFloor = 3;
+  } 
+  updateDisplay();
+
+
+  // recieve floor requests only when IDLE
+  if (currentState == IDLE) {
+    if (digitalRead(btnCall1Pin)){
+      targetFloor = 1;
+      Serial.println("Floor 1 button pressed");
+    }
+    else if (digitalRead(btnCall2Pin)){
+      targetFloor = 2;
+      Serial.println("Floor 2 button pressed");
+    }
+    else if (digitalRead(btnCall3Pin)){
+      targetFloor = 3;
+      Serial.println("Floor 3 button pressed");
+    }
+  }
+
+
+  // MAIN LOGIC
+  switch (currentState) {
+    case IDLE:
+      // process target floor
+      if (targetFloor != 0) {
+        if (targetFloor == currentFloor) {
+          // already on same floor, open the doors.
+          Serial.println("Already on same floor, nothing to do");
+          targetFloor = 0; 
+        } else if (targetFloor > currentFloor) {
+          Serial.println("Lift moving UP");
+          currentState = MOVING_UP;
+        } else {
+          Serial.println("Lift moving DOWN");
+          currentState = MOVING_DOWN;
+        }
+      }
+      break;
+
+    case MOVING_UP:
+      // if reached target floor
+      if (currentFloor == targetFloor) {
+        Serial.println("Reached target floor");
+        targetFloor = 0;
+        currentState = IDLE; 
+      }
+      break;
+
+    case MOVING_DOWN:
+      // if reached target floor
+      if (currentFloor == targetFloor) {
+        Serial.println("Reached target floor");
+        targetFloor = 0;
+        currentState = IDLE; 
+      }
+      break;
+    
+    default:
+      // for safety
+      currentState = IDLE;
+      break;
+  }
+
+  // motor logic 
+  if (currentState == MOVING_UP) {
+    digitalWrite(motorUpPin, HIGH);
+    digitalWrite(motorDownPin, LOW);
+  } 
+  else if (currentState == MOVING_DOWN) {
+    digitalWrite(motorUpPin, LOW);
+    digitalWrite(motorDownPin, HIGH);  
+  } 
+  else { // IDLE
+    digitalWrite(motorUpPin, LOW);
+    digitalWrite(motorDownPin, LOW);   
+  }
+}
 
 // helper Function for the 7-Segment Display
 void updateDisplay() {
