@@ -7,24 +7,35 @@ const int DISPLAY_NUM[] = {
   0b11000000,   // Number 0 in binary: 11000000
   0b11111001,   // Number 1 in binary: 11111001
   0b10100100,   // Number 2 in binary: 10100100
-  0b10110000   // Number 3 in binary: 10110000
+  0b10110000    // Number 3 in binary: 10110000
 };
 
-
+// limit pins
 const int limitFloor1Pin = 2;    
 const int limitFloor2Pin = 3;    
 const int limitFloor3Pin = 4;   
 
-const int btnCall1Pin = A2;   
-const int btnCall2Pin = A3;   
-const int btnCall3Pin = A4;    
+// ultrasonic sensor pins
+const int trigPin = 5;
+const int echoPin = 6;
 
+// buttons outside lift
+const int outbtnCall1Pin = A0;   
+const int outbtnCall2Pin = A1;   
+const int outbtnCall3Pin = A2;    
+
+// buttons inside lift (Fixed names)
+const int inbtnCall1Pin = A3;   
+const int inbtnCall2Pin = A4;   
+const int inbtnCall3Pin = A5; 
+
+// motor pins
 const int motorUpPin = 12;        
 const int motorDownPin = 13;      
 
 // variable to track lift state
 enum ElevatorState {
-  IDLE,         //door close
+  IDLE,         
   MOVING_UP,
   MOVING_DOWN,  
 };
@@ -32,9 +43,10 @@ ElevatorState currentState = IDLE;
 
 int currentFloor = 1; // default starting assumption
 int targetFloor = 0;  // 0 means no active target
-int lastDisplayedFloor = -1; //help avoid unneccessary display output 
+bool isInsideRequest = false; // Tracks if the current target is from inside
+int lastDisplayedFloor = -1; // help avoid unnecessary display output 
 
-
+// setup loop
 void setup() {
   Serial.begin(9600);
 
@@ -46,61 +58,77 @@ void setup() {
   pinMode(limitFloor2Pin, INPUT);
   pinMode(limitFloor3Pin, INPUT);
 
-  pinMode(btnCall1Pin, INPUT);
-  pinMode(btnCall2Pin, INPUT);
-  pinMode(btnCall3Pin, INPUT);
+  // setup ultrasonic pins
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
 
+  // setup outside buttons
+  pinMode(outbtnCall1Pin, INPUT);
+  pinMode(outbtnCall2Pin, INPUT);
+  pinMode(outbtnCall3Pin, INPUT);
+
+  // setup inside buttons
+  pinMode(inbtnCall1Pin, INPUT);
+  pinMode(inbtnCall2Pin, INPUT);
+  pinMode(inbtnCall3Pin, INPUT);
 
   pinMode(motorUpPin, OUTPUT);
   pinMode(motorDownPin, OUTPUT);
-  Serial.println("Starting Setup in 4 secs");
-  delay(4000); //initial delay for setup ease
   
+  Serial.println("Starting Setup in 4 secs...");
+  delay(4000); 
+  
+  Serial.println("Setup Running");
 
-  Serial.println("Setup Runing");
-
-  //homing sequence: find a floor if floating
-  //output 0 to display
+  // homing sequence: output 0 to display
   digitalWrite(latchPin, LOW);
   shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[0]); 
   digitalWrite(latchPin, HIGH);
   
+  // find a floor if floating
   while (digitalRead(limitFloor1Pin) == LOW && digitalRead(limitFloor2Pin) == LOW && digitalRead(limitFloor3Pin) == LOW) {
     Serial.println("Moving to nearby lower station");
     digitalWrite(motorDownPin, HIGH);
-    currentState = MOVING_DOWN; //set state as moving down
+    currentState = MOVING_DOWN;
   }
   
   Serial.println("Lift reached a station");
-  // ensure outputs are low after homing
   digitalWrite(motorUpPin, LOW);
   digitalWrite(motorDownPin, LOW);
-  currentState = IDLE;  //set state as idle
-
+  currentState = IDLE;  
 }
 
+// Helper Function to get Ultrasonic Distance
+int getDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  long duration = pulseIn(echoPin, HIGH);
+  int distance = duration * 0.034 / 2; // Calculate distance in cm
+  return distance;
+}
 
+// helper Function for the 7-Segment Display
+void updateDisplay() {
+  if (lastDisplayedFloor != currentFloor){
+    digitalWrite(latchPin, LOW);
+    if (currentFloor >= 0 && currentFloor <= 3) {
+        shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[currentFloor]); 
+    }
+    digitalWrite(latchPin, HIGH);
+
+    Serial.print("Display updating to show Floor: ");
+    Serial.println(currentFloor);
+    lastDisplayedFloor = currentFloor;
+  }
+}
+
+// main loop
 void loop() {
-//   // Count from 0 to 3
-//   for (int i = 0; i <= 3; i++) {
-    
-//     Serial.print("Testing Display Floor: ");
-//     Serial.println(i);
-
-//     // 1. Pull latch LOW so the LEDs don't change while you are sending data
-//     digitalWrite(latchPin, LOW);
-    
-//     // 2. Send the binary data from your array to the 74LS595
-//     shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[i]);
-    
-//     // 3. Pull latch HIGH to lock the data and turn on the display
-//     digitalWrite(latchPin, HIGH);
-    
-//     // 4. Wait for 2 seconds (2000 milliseconds) before showing the next number
-//     delay(2000); 
-//   }
-// }
-  //update currentFloor and display
+  // update currentFloor and display
   if (digitalRead(limitFloor1Pin)){
     if (currentFloor != 1) {Serial.println("limit floor 1 triggered");}
     currentFloor = 1;
@@ -115,23 +143,42 @@ void loop() {
   } 
   updateDisplay();
 
-
-  // recieve floor requests only when IDLE
-  if (currentState == IDLE) {
-    if (digitalRead(btnCall1Pin)){
+  // Receive floor requests only when IDLE and no current target exists
+  if (currentState == IDLE && targetFloor == 0) {
+    
+    // Check OUTSIDE buttons
+    if (digitalRead(outbtnCall1Pin)){
       targetFloor = 1;
-      Serial.println("Floor 1 button pressed");
+      isInsideRequest = false;
+      Serial.println("Floor 1 OUTSIDE button pressed");
     }
-    else if (digitalRead(btnCall2Pin)){
+    else if (digitalRead(outbtnCall2Pin)){
       targetFloor = 2;
-      Serial.println("Floor 2 button pressed");
+      isInsideRequest = false;
+      Serial.println("Floor 2 OUTSIDE button pressed");
     }
-    else if (digitalRead(btnCall3Pin)){
+    else if (digitalRead(outbtnCall3Pin)){
       targetFloor = 3;
-      Serial.println("Floor 3 button pressed");
+      isInsideRequest = false;
+      Serial.println("Floor 3 OUTSIDE button pressed");
+    }
+    // Check INSIDE buttons
+    else if (digitalRead(inbtnCall1Pin)){
+      targetFloor = 1;
+      isInsideRequest = true;
+      Serial.println("Floor 1 INSIDE button pressed");
+    }
+    else if (digitalRead(inbtnCall2Pin)){
+      targetFloor = 2;
+      isInsideRequest = true;
+      Serial.println("Floor 2 INSIDE button pressed");
+    }
+    else if (digitalRead(inbtnCall3Pin)){
+      targetFloor = 3;
+      isInsideRequest = true;
+      Serial.println("Floor 3 INSIDE button pressed");
     }
   }
-
 
   // MAIN LOGIC
   switch (currentState) {
@@ -139,28 +186,32 @@ void loop() {
       // process target floor
       if (targetFloor != 0) {
         if (targetFloor == currentFloor) {
-          // already on same floor, open the doors.
           Serial.println("Already on same floor, nothing to do");
           targetFloor = 0; 
-        } else if (targetFloor > currentFloor) {
-          Serial.println("Lift moving UP");
-          currentState = MOVING_UP;
         } else {
-          Serial.println("Lift moving DOWN");
-          currentState = MOVING_DOWN;
+          // If the request came from inside, check for ghosts before moving
+          if (isInsideRequest) {
+            int distance = getDistance();
+            if (distance <= 0 || distance >= 15) {
+               Serial.println("Ghost call detected! No one inside. Canceling request.");
+               targetFloor = 0; 
+               break; // Exit the switch, stay IDLE
+            }
+          }
+
+          // If we passed the ghost check (or it's an outside request), start moving
+          if (targetFloor > currentFloor) {
+            Serial.println("Lift moving UP");
+            currentState = MOVING_UP;
+          } else {
+            Serial.println("Lift moving DOWN");
+            currentState = MOVING_DOWN;
+          }
         }
       }
       break;
 
     case MOVING_UP:
-      // if reached target floor
-      if (currentFloor == targetFloor) {
-        Serial.println("Reached target floor");
-        targetFloor = 0;
-        currentState = IDLE; 
-      }
-      break;
-
     case MOVING_DOWN:
       // if reached target floor
       if (currentFloor == targetFloor) {
@@ -171,7 +222,6 @@ void loop() {
       break;
     
     default:
-      // for safety
       currentState = IDLE;
       break;
   }
@@ -188,22 +238,5 @@ void loop() {
   else { // IDLE
     digitalWrite(motorUpPin, LOW);
     digitalWrite(motorDownPin, LOW);   
-  }
-}
-
-// helper Function for the 7-Segment Display
-void updateDisplay() {
-  if (lastDisplayedFloor != currentFloor){
-    digitalWrite(latchPin, LOW);
-    if (currentFloor >= 0 && currentFloor <= 3) {
-        shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[currentFloor]); 
-    }
-    digitalWrite(latchPin, HIGH);
-
-    
-    Serial.print("Display updating to show Floor: ");
-    Serial.println(currentFloor);
-    //update the lastDisplayedFloor
-    lastDisplayedFloor = currentFloor;
   }
 }
