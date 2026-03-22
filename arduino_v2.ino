@@ -81,25 +81,7 @@ void setup() {
 
 
 void loop() {
-//   // Count from 0 to 3
-//   for (int i = 0; i <= 3; i++) {
-    
-//     Serial.print("Testing Display Floor: ");
-//     Serial.println(i);
 
-//     // 1. Pull latch LOW so the LEDs don't change while you are sending data
-//     digitalWrite(latchPin, LOW);
-    
-//     // 2. Send the binary data from your array to the 74LS595
-//     shiftOut(dataPin, clockPin, MSBFIRST, DISPLAY_NUM[i]);
-    
-//     // 3. Pull latch HIGH to lock the data and turn on the display
-//     digitalWrite(latchPin, HIGH);
-    
-//     // 4. Wait for 2 seconds (2000 milliseconds) before showing the next number
-//     delay(2000); 
-//   }
-// }
   //update currentFloor and display
   if (digitalRead(limitFloor1Pin)){
     if (currentFloor != 1) {Serial.println("limit floor 1 triggered");}
