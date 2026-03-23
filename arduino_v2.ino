@@ -212,6 +212,13 @@ void loop() {
       break;
 
     case MOVING_UP:
+      // if reached target floor
+      if (currentFloor == targetFloor) {
+        Serial.println("Reached target floor");
+        targetFloor = 0;
+        currentState = IDLE; 
+      }
+      break;
     case MOVING_DOWN:
       // if reached target floor
       if (currentFloor == targetFloor) {
