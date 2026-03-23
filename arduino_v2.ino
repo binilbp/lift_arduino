@@ -25,12 +25,12 @@ void setup() {
   
   Serial.println("Running switches check program in 3 secs ...");
   delay(3000); 
+  Serial.println("Press each switch to check their working");
 }
 
 
 // main loop
 void loop() {
-  Serial.println("Press switch to check their working");
     
     // Check OUTSIDE buttons
   if (digitalRead(outbtnCall1Pin)){
